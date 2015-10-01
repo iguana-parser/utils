@@ -39,7 +39,7 @@ public class GraphVizUtil {
 	
 	public static final String ROUNDED_RECTANGLE = "[shape=box, style=rounded, height=0.1, width=0.1, color=%s, fontcolor=black, label=\"%s\", fontsize=10];";
 	public static final String RECTANGLE = "[shape=box, height=0.2, width=0.4, color=%s, fontcolor=black, label=\"%s\", fontsize=10];";
-	public static final String CIRCLE = "[shape=circle, height=0.1, width=0.1, color=black, fontcolor=black, label=\"\", xlabel=\"%s\", fontsize=10];";
+	public static final String CIRCLE = "[shape=circle, height=0.1, width=0.1, color=%s, fontcolor=black, label=\"%s\", xlabel=\"%s\", fontsize=10];";
 	public static final String EDGE = "edge [color=black, style=solid, penwidth=0.5, arrowsize=0.7];";
 	public static final String DIAMOND = "[shape=diamond, height=0.1, width=0.1, color=%s, fontcolor=black, label=\"Amb\", fontsize=10];";
 	
