@@ -27,8 +27,6 @@
 
 package iguana.utils.input;
 
-import java.net.URI;
-
 
 /**
  * 
@@ -43,16 +41,14 @@ public class PositionInfo {
 	private final int startColumnNumber;
 	private final int endLineNumber;
 	private final int endColumnNumber;
-	private final URI uri;
-	
-	public PositionInfo(int offset, int length, int lineNumber, int columnNumber, int endLineNumber, int endColumnNumber, URI uri) {
+
+	public PositionInfo(int offset, int length, int lineNumber, int columnNumber, int endLineNumber, int endColumnNumber) {
 		this.offset = offset;
 		this.length = length;
 		this.startLineNumber = lineNumber;
 		this.startColumnNumber = columnNumber;
 		this.endLineNumber = endLineNumber;
 		this.endColumnNumber = endColumnNumber;
-		this.uri = uri;
 	}
 	
 	public int getOffset() {
@@ -77,10 +73,6 @@ public class PositionInfo {
 	
 	public int getEndColumnNumber() {
 		return endColumnNumber;
-	}
-	
-	public URI getURI() {
-		return uri;
 	}
 	
 }

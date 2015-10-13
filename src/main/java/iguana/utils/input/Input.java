@@ -284,7 +284,8 @@ public class Input {
 		
 		Input other = (Input) obj;
 		
-		return Arrays.equals(characters, other.characters);
+		return this.length() == other.length() &&
+               Arrays.equals(characters, other.characters);
 	}
 	
 	public PositionInfo getPositionInfo(int leftExtent, int rightExtent) {
@@ -293,8 +294,7 @@ public class Input {
 								getLineNumber(leftExtent), 
 								getColumnNumber(leftExtent), 
 								getLineNumber(rightExtent), 
-								getColumnNumber(rightExtent),
-								uri);
+								getColumnNumber(rightExtent));
 	}
 	
 
