@@ -54,12 +54,14 @@ import org.apache.commons.io.input.ReaderInputStream;
  */
 public class Input {
 
-	private int[] characters;
+    public static final int DEFAULT_TAB_WIDTH = 8;
+
+	private final int[] characters;
 	
 	/**
 	 * This array keeps the line and column information associated with each input index.
 	 */
-	private LineColumn[] lineColumns;
+	private final LineColumn[] lineColumns;
 	
 	/**
 	 * Number of lines in the input.
@@ -68,9 +70,9 @@ public class Input {
 	
 	private final IntArrayCharSequence charSequence;
 	
-	private URI uri;
+	private final URI uri;
 	
-	private int tabWidth = 8;
+	private final int tabWidth;
 	
 	public static Input fromString(String s, URI uri) {
 		try {
@@ -155,10 +157,15 @@ public class Input {
 		}
 	}
 
-	private Input(int[] input, URI uri) {
+    private Input(int[] input, URI uri) {
+        this(input, uri, DEFAULT_TAB_WIDTH);
+    }
+
+	private Input(int[] input, URI uri, int tabWidth) {
 		this.uri = uri;
 		this.charSequence = new IntArrayCharSequence(input);
-		
+		this.tabWidth = tabWidth;
+
 		// Add EOF (-1) to the end of characters array
 		int length = input.length + 1;
 		this.characters = new int[length];
@@ -389,6 +396,20 @@ public class Input {
 		
 		return sb.toString();
 	}
+
+    /**
+     * Inserts the contents of the given input at the given input position
+     */
+    public Input insert(int i, Input input) {
+        if (i < 0) throw new IllegalArgumentException("i cannot be negative.");
+        if (i > length()) throw new IllegalArgumentException("i cannot be greater than " + length());
+
+        int[] newChars = new int[length() + input.length() - 2];
+        System.arraycopy(characters, 0, newChars, 0, i);
+        System.arraycopy(input.characters, 0, newChars, i, input.length() - 1);
+        System.arraycopy(characters, i, newChars, i + input.length() - 1, length() - i - 1);
+        return new Input(newChars, uri);
+    }
 	
 	@Override
 	public String toString() {
@@ -408,24 +429,16 @@ public class Input {
 		return uri;
 	}
 	
-	public void setTabWidth(int tabWidth) {
-		this.tabWidth = tabWidth;
-	}
-
 	public boolean isEndOfLine(int currentInputIndex) {
 		return characters[currentInputIndex] == 0 || lineColumns[currentInputIndex + 1].columnNumber == 1;
 	}
 	
-	public boolean isEndOfFile(int currentInputIndex) {
-		return characters[currentInputIndex] == -1;
+	public boolean isEndOfFile(int i) {
+		return characters[i] == -1;
 	}
 	
-	public int[] getCharacters() {
-		return characters;
-	}
-
-	public boolean isStartOfLine(int currentInputIndex) {
-		return currentInputIndex == 0 || lineColumns[currentInputIndex].columnNumber == 1;
+	public boolean isStartOfLine(int i) {
+		return i == 0 || lineColumns[i].columnNumber == 1;
 	}
 	
 }
