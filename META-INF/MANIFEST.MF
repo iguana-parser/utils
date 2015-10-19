@@ -3,6 +3,10 @@ Bundle-ManifestVersion: 2
 Bundle-Name: utils
 Bundle-SymbolicName: utils
 Bundle-Version: 1.0.0.qualifier
-Export-Package: iguana.utils.input,
+Export-Package: iguana.utils.collections.hash;uses:="iguana.utils.function",
+ iguana.utils.collections.rangemap,
+ iguana.utils.function,
+ iguana.utils.input,
+ iguana.utils.logging,
  iguana.utils.visualization
 Require-Bundle: org.apache.commons.io;bundle-version="2.2.0"
