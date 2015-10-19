@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import iguana.utils.collections.hash.MurmurHash3;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.io.input.ReaderInputStream;
@@ -73,6 +74,8 @@ public class Input {
 	private final URI uri;
 	
 	private final int tabWidth;
+
+    private final int hash;
 	
 	public static Input fromString(String s, URI uri) {
 		try {
@@ -174,6 +177,8 @@ public class Input {
 		
 		lineColumns = new LineColumn[characters.length];
 		calculateLineLengths();
+
+        this.hash = MurmurHash3.fn().apply(characters);
 	}
 	
 	public int charAt(int index) {
@@ -279,8 +284,13 @@ public class Input {
 		}
 		return lineColumns[index].getColumnNumber();
 	}
-	
-	@Override
+
+    @Override
+    public int hashCode() {
+        return hash;
+    }
+
+    @Override
 	public boolean equals(Object obj) {
 		
 		if(this == obj)
