@@ -2,5 +2,10 @@
 /target/
 .idea/workspace.xml
 .idea/tasks.xml
-project
+project/project
+project/target
 projectFilesBackup
+.cache-main
+.cache-tests
+.classpath
+.project
