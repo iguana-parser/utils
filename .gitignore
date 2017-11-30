@@ -1,11 +1,12 @@
 bin/
 target/
 .idea/
-project/project/
-project/target/
+project/
 projectFilesBackup/
 .cache-main
 .cache-tests
 .classpath
 .project
 .settings/
+utils.iml
+
