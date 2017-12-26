@@ -65,13 +65,6 @@ public class GraphVizUtil {
 		generateGraph(dot, directory, fileName, TOP_DOWN);
 	}
 	
-	/**
-	 * Generates a graph from the given SPPF.
-	 * 
-	 * @param sppf
-	 * @param directory
-	 * @param name
-	 */
 	public static void generateGraph(String dot, String directory, String name, int layout) {
 		StringBuilder sb = new StringBuilder();
 		String lineSeparator = System.getProperty("line.separator");
