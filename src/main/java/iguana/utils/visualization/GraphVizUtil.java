@@ -27,8 +27,7 @@
 
 package iguana.utils.visualization;
 
-import java.io.FileWriter;
-import java.io.Writer;
+import java.io.*;
 
 /**
  * 
@@ -61,11 +60,11 @@ public class GraphVizUtil {
 	public static final int TOP_DOWN = 0;
 	public static final int LEFT_TO_RIGHT = 1;
 	
-	public static void generateGraph(String dot, String output) {
-		generateGraph(dot, output, TOP_DOWN);
+	public static void generateGraph(String content, String outputPath) {
+		generateGraph(content, outputPath, TOP_DOWN);
 	}
 	
-	public static void generateGraph(String dot, String output, int layout) {
+	public static void generateGraph(String content, String outputPath, int layout) {
 		StringBuilder sb = new StringBuilder();
 		String lineSeparator = System.getProperty("line.separator");
 		
@@ -80,30 +79,22 @@ public class GraphVizUtil {
 			sb.append("rankdir=LR").append(lineSeparator);
 		}
 		
-		sb.append(dot);
+		sb.append(content);
 
 		sb.append(lineSeparator);
 		sb.append("}");
-		
-		try {
-			Writer out = new FileWriter(output);
-			out.write(sb.toString());
-			out.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 
-		generateImage(output);
+		generateImage(sb.toString(), outputPath);
 	}
 
-	private static void generateImage(String fileName) {
-		String cmd = "/usr/local/bin/dot" + " -Tpdf " + "-o " + fileName + ".pdf" + " " + fileName + ".txt";
-		System.out.println("Running " + cmd);
-
+	private static void generateImage(String content, String fileName) {
 		try {
-			Runtime run = Runtime.getRuntime();
-			Process pr = run.exec(cmd);
-			pr.waitFor();
+			Process process = new ProcessBuilder("dot", "-Tpdf", "-o", fileName).start();
+			OutputStream stdin = process.getOutputStream();
+			try (PrintWriter out = new PrintWriter(new BufferedOutputStream(stdin))) {
+				out.write(content);
+			}
+			process.waitFor();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
