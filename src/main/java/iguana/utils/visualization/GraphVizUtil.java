@@ -61,11 +61,11 @@ public class GraphVizUtil {
 	public static final int TOP_DOWN = 0;
 	public static final int LEFT_TO_RIGHT = 1;
 	
-	public static void generateGraph(String dot, String directory, String fileName) {
-		generateGraph(dot, directory, fileName, TOP_DOWN);
+	public static void generateGraph(String dot, String output) {
+		generateGraph(dot, output, TOP_DOWN);
 	}
 	
-	public static void generateGraph(String dot, String directory, String name, int layout) {
+	public static void generateGraph(String dot, String output, int layout) {
 		StringBuilder sb = new StringBuilder();
 		String lineSeparator = System.getProperty("line.separator");
 		
@@ -85,16 +85,15 @@ public class GraphVizUtil {
 		sb.append(lineSeparator);
 		sb.append("}");
 		
-		String fileName = directory + "/" + name;
 		try {
-			Writer out = new FileWriter(fileName + ".txt");
+			Writer out = new FileWriter(output);
 			out.write(sb.toString());
 			out.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		generateImage(fileName);
+		generateImage(output);
 	}
 
 	private static void generateImage(String fileName) {
