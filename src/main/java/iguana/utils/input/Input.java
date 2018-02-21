@@ -27,14 +27,7 @@
 
 package iguana.utils.input;
 
-import java.io.BufferedReader;
-import java.io.CharArrayReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -148,16 +141,12 @@ public class Input {
 		return new Input(input, uri);
 	}
 	
-	public static Input fromPath(String path) {
+	public static Input fromPath(String path) throws IOException {
 		return fromFile(new File(path));
 	}
 	
-	public static Input fromFile(File file) {
-		try {
-			return new Input(fromStream(new FileInputStream(file)), file.toURI());
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+	public static Input fromFile(File file) throws IOException {
+		return new Input(fromStream(new FileInputStream(file)), file.toURI());
 	}
 
     private Input(int[] input, URI uri) {
