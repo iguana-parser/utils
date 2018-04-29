@@ -127,6 +127,7 @@ public class Input {
 		}
 		
 		reader.close();
+		in.close();
 		
 		int[] intInput = new int[input.size()];
 		int i = 0;
