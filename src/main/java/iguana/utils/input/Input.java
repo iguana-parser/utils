@@ -27,16 +27,17 @@
 
 package iguana.utils.input;
 
+import iguana.utils.collections.tuple.Tuple;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.BOMInputStream;
+
 import java.io.*;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import iguana.utils.collections.hash.MurmurHash3;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.BOMInputStream;
-import org.apache.commons.io.input.ReaderInputStream;
+import java.util.Objects;
 
 
 /**
@@ -48,133 +49,52 @@ import org.apache.commons.io.input.ReaderInputStream;
  */
 public class Input {
 
-    public static final int DEFAULT_TAB_WIDTH = 8;
+    private static final int EOF = -1;
 
 	private final int[] characters;
-	
-	/**
-	 * This array keeps the line and column information associated with each input index.
-	 */
-	private final LineColumn[] lineColumns;
-	
-	/**
-	 * Number of lines in the input.
-	 */
-	private int lineCount;
-	
-	private final IntArrayCharSequence charSequence;
+
+	private final int[] lineStarts;
 	
 	private final URI uri;
-	
-	private final int tabWidth;
+
+    public static Input fromString(String s) {
+        return fromString(s, URI.create("dummy:///"));
+    }
 
     private final int hash;
-	
+
 	public static Input fromString(String s, URI uri) {
 		try {
 			return new Input(fromStream(IOUtils.toInputStream(s)), uri);
 		} catch (IOException e) {
-			assert false : "this should not happen from a string";
-			e.printStackTrace();
+            throw new RuntimeException("Should not reach here");
 		}
-		throw new RuntimeException();
 	}
 	
-	public static Input fromCharArray(char[] s, URI uri) {
-		try {
-			return new Input(fromStream(new ReaderInputStream(new CharArrayReader(s))), uri);
-		} catch (IOException e) {
-		    e.printStackTrace();
-		}
-		throw new RuntimeException("unexpected implementation exception");
-		
-	}
-	
-	public static Input empty() {
-		return fromString("");
-	}
-	
-	public static Input fromString(String s) {
-		return fromString(s, URI.create("dummy:///"));
-	}
-		
-	public static Input fromChar(char c) {
-		int[] input = new int[1];
-		input[0] = c;
-		return new Input(input, URI.create("dummy:///"));
-	}
-	
-	public static Input fromIntArray(int[] input) {
-		return new Input(input, URI.create("dummy:///"));
-	}
-
-	private static int[] fromStream(InputStream in) throws IOException {
-		BOMInputStream bomIn = new BOMInputStream(in, false);
-		Reader reader = new BufferedReader(new InputStreamReader(bomIn));
-		
-		List<Integer> input = new ArrayList<>();
-
-		int c = 0;
-		while ((c = reader.read()) != -1) {
-			if (!Character.isHighSurrogate((char) c)) {
-				input.add(c);
-			} else {
-				int next = 0;
-				if ((next = reader.read()) != -1) {
-					input.add(Character.toCodePoint((char)c, (char)next));					
-				}
-			}
-		}
-		
-		reader.close();
-		in.close();
-		
-		int[] intInput = new int[input.size()];
-		int i = 0;
-		for (Integer v : input) {
-			intInput[i++] = v;
-		}
-
-		return intInput;
-	}
-	
-	public static Input fromIntArray(int[] input, URI uri) {
-		return new Input(input, uri);
-	}
-	
-	public static Input fromPath(String path) throws IOException {
-		return fromFile(new File(path));
+	public static Input fromPath(Path path) throws IOException {
+		return fromFile(path.toFile());
 	}
 	
 	public static Input fromFile(File file) throws IOException {
 		return new Input(fromStream(new FileInputStream(file)), file.toURI());
 	}
 
-    private Input(int[] input, URI uri) {
-        this(input, uri, DEFAULT_TAB_WIDTH);
-    }
-
-	private Input(int[] input, URI uri, int tabWidth) {
+	private Input(Tuple<Object, Object> result, URI uri) {
 		this.uri = uri;
-		this.charSequence = new IntArrayCharSequence(input);
-		this.tabWidth = tabWidth;
-
-		// Add EOF (-1) to the end of characters array
-		int length = input.length + 1;
-		this.characters = new int[length];
-		System.arraycopy(input, 0, characters, 0, length - 1);
-		this.characters[input.length] = -1;
-		
-		lineColumns = new LineColumn[characters.length];
+		this.characters = (int[]) result.getFirst();
+        this.lineStarts = new int[(int) result.getSecond()];
 		calculateLineLengths();
 
-        this.hash = MurmurHash3.fn().apply(characters);
+        this.hash = Arrays.hashCode(characters);
 	}
 	
 	public int charAt(int index) {
 		return characters[index];
 	}
 
+    /**
+     * The length is one more than the actual characters in the input as the last input character is considered EOF.
+     */
 	public int length() {
 		return characters.length;
 	}
@@ -226,13 +146,12 @@ public class Input {
 	}
 	
 	public boolean match(int from, int[] target) {
-		
-		if(target.length > length() - from) {
+		if (target.length > length() - from) {
 			return false;
 		}
 		
 		int i = 0;
-		while(i < target.length) {
+		while (i < target.length) {
 			if(target[i] != characters[from + i]) {
 				return false;
 			}
@@ -241,38 +160,21 @@ public class Input {
 		
 		return true;
 	}
-	
-	public static int[] toIntArray(String s) {
-		int[] array = new int[s.codePointCount(0, s.length())];
-		for(int i = 0; i < array.length; i++) {
-			array[i] = s.codePointAt(i);
-		}
-		return array;
+
+	public int getLineNumber(int inputIndex) {
+        checkBounds(inputIndex, length());
+
+        int lineStart = Arrays.binarySearch(lineStarts, inputIndex);
+        if (lineStart >= 0) return lineStart + 1;
+        return -lineStart - 1;
 	}
 	
-	public IntArrayCharSequence asCharSequence() {
-		return charSequence;
-	}
-	
-	public LineColumn getLineColumn(int index) {
-		if(index < 0 || index >= lineColumns.length) {
-			return new LineColumn(0, 0);
-		}
-		return lineColumns[index];
-	}
- 
-	public int getLineNumber(int index) {
-		if(index < 0 || index >= lineColumns.length) {
-			return 0;
-		}
-		return lineColumns[index].getLineNumber();
-	}
-	
-	public int getColumnNumber(int index) {
-		if(index < 0 || index >= lineColumns.length) {
-			return 0;
-		}
-		return lineColumns[index].getColumnNumber();
+	public int getColumnNumber(int inputIndex) {
+        checkBounds(inputIndex, length());
+
+        int lineStart = Arrays.binarySearch(lineStarts, inputIndex);
+        if (lineStart >= 0) return 1;
+        return inputIndex - lineStarts[-lineStart - 1 - 1] + 1;
 	}
 
     @Override
@@ -282,94 +184,26 @@ public class Input {
 
     @Override
 	public boolean equals(Object obj) {
-		
-		if(this == obj)
-			return true;
-		
-		if(! (obj instanceof Input)) 
-			return false;
-		
+		if (this == obj) return true;
+
+		if (!(obj instanceof Input)) return false;
+
 		Input other = (Input) obj;
-		
+
 		return this.length() == other.length() &&
+               this.hash == other.hash &&
                Arrays.equals(characters, other.characters);
 	}
-	
-	public PositionInfo getPositionInfo(int leftExtent, int rightExtent) {
-		return new PositionInfo(leftExtent, 
-								rightExtent - leftExtent, 
-								getLineNumber(leftExtent), 
-								getColumnNumber(leftExtent), 
-								getLineNumber(rightExtent), 
-								getColumnNumber(rightExtent));
-	}
-	
 
 	private void calculateLineLengths() {
-		int lineNumber = 1;
-		int columnNumber = 1;
+        lineStarts[0] = 0;
+        int j = 0;
 
-		// Empty input: only the end of line symbol
-		if(characters.length == 1) {
-			lineColumns[0] = new LineColumn(lineNumber, columnNumber);
-			return;
-		}
-		
 		for (int i = 0; i < characters.length; i++) {
-			lineColumns[i] = new LineColumn(lineNumber, columnNumber);
 			if (characters[i] == '\n') {
-				lineCount++;
-				lineNumber++;
-				columnNumber = 1;
-			} 
-			else if (characters[i] == '\r') {
-				columnNumber = 1;
-			} 
-			else if (characters[i] == '\t') { 
-			  columnNumber += tabWidth;
-			} 
-			else {
-				columnNumber++;
+			    if (i + 1 < characters.length)
+			        lineStarts[++j] = i + 1;
 			}
-		}
-		
-		// The end of the line char column as the last character
-//		lineColumns[input.length - 1] = new LineColumn(lineColumns[input.length - 2]);
-	}
-		
-	private static class LineColumn {
-
-		private int lineNumber;
-		private int columnNumber;
-		
-		public LineColumn(int lineNumber, int columnNumber) {
-			this.lineNumber = lineNumber;
-			this.columnNumber = columnNumber;
-		}
-		
-		public int getLineNumber() {
-			return lineNumber;
-		}
-		
-		public int getColumnNumber() {
-			return columnNumber;
-		}
-		
-		@Override
-		public String toString() {
-			return "(" + lineNumber + ":" + columnNumber + ")";
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			if(this == obj)
-				return true;
-			
-			if(!(obj instanceof LineColumn))
-				return false;
-			
-			LineColumn other = (LineColumn) obj;
-			return lineNumber == other.lineNumber && columnNumber == other.columnNumber;
 		}
 	}
 	
@@ -397,27 +231,13 @@ public class Input {
 		return sb.toString();
 	}
 
-    /**
-     * Inserts the contents of the given input at the given input position
-     */
-    public Input insert(int i, Input input) {
-        if (i < 0) throw new IllegalArgumentException("i cannot be negative.");
-        if (i > length()) throw new IllegalArgumentException("i cannot be greater than " + length());
-
-        int[] newChars = new int[length() + input.length() - 2];
-        System.arraycopy(characters, 0, newChars, 0, i);
-        System.arraycopy(input.characters, 0, newChars, i, input.length() - 1);
-        System.arraycopy(characters, i, newChars, i + input.length() - 1, length() - i - 1);
-        return new Input(newChars, uri);
-    }
-	
 	@Override
 	public String toString() {
 		return subString(0, characters.length - 1);
 	}
 	
 	public int getLineCount() {
-		return lineCount;
+		return lineStarts.length;
 	}
 	
 	public boolean isEmpty() {
@@ -428,17 +248,75 @@ public class Input {
 	public URI getURI() {
 		return uri;
 	}
-	
-	public boolean isEndOfLine(int currentInputIndex) {
-		return characters[currentInputIndex] == 0 || lineColumns[currentInputIndex + 1].columnNumber == 1;
+
+    public boolean isStartOfLine(int inputIndex) {
+        checkBounds(inputIndex, length());
+
+        return Arrays.binarySearch(lineStarts, inputIndex) >= 0;
+    }
+
+	public boolean isEndOfLine(int inputIndex) {
+        checkBounds(inputIndex, length());
+
+        int lineStart = Arrays.binarySearch(lineStarts, inputIndex);
+        if (lineStart >= 0) return false;
+        return inputIndex == lineStarts[-lineStart - 1] - 1;
 	}
 	
-	public boolean isEndOfFile(int i) {
-		return characters[i] == -1;
+	public boolean isEndOfFile(int inputIndex) {
+        checkBounds(inputIndex, length());
+
+		return characters[inputIndex] == -1;
 	}
-	
-	public boolean isStartOfLine(int i) {
-		return i == 0 || lineColumns[i].columnNumber == 1;
-	}
-	
+
+    private static Tuple<Object, Object> fromStream(InputStream in) throws IOException {
+        BOMInputStream bomIn = new BOMInputStream(in, false);
+        Reader reader = new BufferedReader(new InputStreamReader(bomIn));
+
+        List<Integer> input = new ArrayList<>();
+
+        int lineCount = 0;
+
+        int c;
+        while ((c = reader.read()) != -1) {
+            if (!Character.isHighSurrogate((char) c)) {
+                input.add(c);
+                if (c == '\n') {
+                    lineCount++;
+                }
+            } else {
+                int next;
+                if ((next = reader.read()) != -1) {
+                    input.add(Character.toCodePoint((char)c, (char)next));
+                }
+            }
+        }
+
+        reader.close();
+        in.close();
+
+        int[] intInput = new int[input.size() + 1];
+        int i = 0;
+        for (Integer v : input) {
+            intInput[i++] = v;
+        }
+        intInput[i] = EOF;
+
+        return Tuple.of(intInput, lineCount + 1);
+    }
+
+    private static void checkBounds(int index, int length) {
+        if (index < 0 || index >= length) {
+            throw new IndexOutOfBoundsException("index must be greater than or equal to 0 and smaller than the input length (" + length + ")");
+        }
+    }
+
+    private static int[] toIntArray(String s) {
+        int[] array = new int[s.codePointCount(0, s.length())];
+        for(int i = 0; i < array.length; i++) {
+            array[i] = s.codePointAt(i);
+        }
+        return array;
+    }
+
 }
